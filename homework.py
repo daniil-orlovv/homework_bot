@@ -3,11 +3,8 @@ import requests
 import time
 import logging
 
-from typing import Dict, List
 
 import telegram
-from telegram import ReplyKeyboardMarkup
-from telegram.ext import CommandHandler, Updater, Filters, MessageHandler
 
 from dotenv import load_dotenv
 
@@ -38,22 +35,28 @@ HOMEWORK_VERDICTS = {
 
 
 def check_tokens():
+    """Проверяем наличие переменных."""
     try:
-        PRACTICUM_TOKEN = os.environ['PRACTICUM_TOKEN']
-        TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
-        TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+        os.environ['PRACTICUM_TOKEN']
+        os.environ['TELEGRAM_TOKEN']
+        os.environ['TELEGRAM_CHAT_ID']
     except KeyError as e:
         logging.critical(f'Переменная {e.args[0]} не найдена.')
         raise SystemExit(1)
 
 
 def send_message(bot, message):
-    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-    logging.debug('Сообщение о статусе отправлено.')
+    """Отправляем сообщение о статусе в телеграм."""
+    try:
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+        logging.debug('Сообщение о статусе отправлено.')
+    except Exception as e:
+        logging.error(f'Не удалось отправить сообщение: {str(e)}')
 
 
 def get_api_answer(timestamp):
-    payload = {'from_date': 0}
+    """Получаем API с информацией о домашних работах."""
+    payload = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
         response.raise_for_status()
@@ -64,6 +67,7 @@ def get_api_answer(timestamp):
 
 
 def check_response(response):
+    """Проверяем API на соответствие документации."""
     try:
         assert isinstance(response, dict)
         assert isinstance(response['current_date'], int)
@@ -84,6 +88,7 @@ def check_response(response):
 
 
 def parse_status(homework):
+    """Обрабатываем API и создаем ответ о статусе."""
     try:
         if 'homeworks' in homework:
             homework_name = homework['homeworks'][0]['homework_name']
@@ -92,7 +97,8 @@ def parse_status(homework):
             if status not in HOMEWORK_VERDICTS:
                 logging.error(f'Неизвестный статус домашней работы: {verdict}')
             logging.info('Статус работы изменен.')
-            return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+            return (f'Изменился статус проверки работы "{homework_name}".'
+                    f' {verdict}')
         else:
             logging.info('Статус работы не изменен.')
     except KeyError as e:
