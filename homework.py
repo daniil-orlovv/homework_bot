@@ -2,6 +2,8 @@ import os
 import requests
 import time
 import logging
+import sys
+from exeptions import MyException
 
 
 import telegram
@@ -42,7 +44,7 @@ def check_tokens():
         os.environ['TELEGRAM_CHAT_ID']
     except KeyError as e:
         logging.critical(f'Переменная {e.args[0]} не найдена.')
-        raise SystemExit(1)
+        sys.exit()
 
 
 def send_message(bot, message):
@@ -56,76 +58,70 @@ def send_message(bot, message):
 
 def get_api_answer(timestamp):
     """Получаем API с информацией о домашних работах."""
+
     payload = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        logging.error(f'API request failed: {e}')
-        return None
+        if response.status_code != 200:
+            logging.error(f'Bad response: {response.status_code}')
+            raise requests.exceptions.HTTPError
+    except requests.exceptions.HTTPError:
+        raise MyException('Это мое собственное исключение!')
+    except requests.RequestException:
+        logging.error('Ошибка запроса')
+
+
     return response.json()
 
 
 def check_response(response):
     """Проверяем API на соответствие документации."""
+    if not isinstance(response, dict):
+        logging.error('API response is not a dictionary')
+        raise TypeError('API response is not a dictionary')
+    if not isinstance(response['current_date'], int):
+        logging.error('current_date is not an integer')
+        raise TypeError('current_date is not a dictionary')
     try:
-        assert isinstance(response, dict)
-        assert isinstance(response['current_date'], int)
-        assert isinstance(response['homeworks'], list)
-
-        for homework in response['homeworks']:
-            assert isinstance(homework, dict)
-            assert isinstance(homework['date_updated'], str)
-            assert isinstance(homework['homework_name'], str)
-            assert isinstance(homework['id'], int)
-            assert isinstance(homework['lesson_name'], str)
-            assert isinstance(homework['reviewer_comment'], str)
-            assert isinstance(homework['status'], str)
-
-        logging.info('API response is valid')
-    except AssertionError:
-        logging.error('API response is not valid')
+        if not isinstance(response['homeworks'], list):
+            logging.error('homeworks is not a list')
+            raise TypeError('homeworks is not a dictionary')
+    except KeyError:
+        logging.error('homeworks not in a response')
+        raise KeyError('homeworks not in a response')
+    print(response)
 
 
 def parse_status(homework):
     """Обрабатываем API и создаем ответ о статусе."""
-    try:
-        if 'homeworks' in homework:
-            homework_name = homework['homeworks'][0]['homework_name']
-            status = homework['homeworks'][0]['status']
-            verdict = HOMEWORK_VERDICTS.get(status)
-            if status not in HOMEWORK_VERDICTS:
-                logging.error(f'Неизвестный статус домашней работы: {verdict}')
+    homework_name = homework['homeworks'][0]['homework_name']
+    status = homework['homeworks'][0]['status']
+    verdict = HOMEWORK_VERDICTS.get(status)
+    print(homework_name, status, verdict)
+    if homework_name and verdict:
+        if status in HOMEWORK_VERDICTS:
             logging.info('Статус работы изменен.')
-            return (f'Изменился статус проверки работы "{homework_name}".'
-                    f' {verdict}')
+            return f'Изменился статус проверки работы "{homework_name}". {verdict}'
         else:
-            logging.info('Статус работы не изменен.')
-    except KeyError as e:
-        logging.error(f'Отсутствует ожидаемый ключ в ответе API: {e}')
-        return None
-    except IndexError:
-        logging.error('Пустой список homeworks в ответе API')
-        return None
-
+            logging.error(f'Неизвестный статус домашней работы: {verdict}')
+            raise ValueError(f'Неизвестный статус домашней работы: {verdict}')
 
 def main():
     """Основная логика работы бота."""
     check_tokens()
     timestamp = int(time.time()) - RETRY_PERIOD
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
 
     while True:
         try:
             response_json = get_api_answer(timestamp)
             check_response(response_json)
-            bot = telegram.Bot(token=TELEGRAM_TOKEN)
             message = parse_status(response_json)
             send_message(bot, message)
             timestamp = response_json['current_date']
-            time.sleep(RETRY_PERIOD)
         except Exception as error:
             print(f'Сбой в работе программы: {error}')
-
+        time.sleep(RETRY_PERIOD)
 
 if __name__ == '__main__':
     main()
