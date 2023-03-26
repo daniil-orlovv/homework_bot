@@ -38,13 +38,9 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Проверяем наличие переменных."""
-    try:
-        os.environ['PRACTICUM_TOKEN']
-        os.environ['TELEGRAM_TOKEN']
-        os.environ['TELEGRAM_CHAT_ID']
-    except KeyError as e:
-        logging.critical(f'Переменная {e.args[0]} не найдена.')
-        sys.exit()
+    if not PRACTICUM_TOKEN or not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        logging.critical('Отсутствуют обязательные переменные.')
+        sys.exit(1)
 
 
 def send_message(bot, message):
@@ -58,7 +54,6 @@ def send_message(bot, message):
 
 def get_api_answer(timestamp):
     """Получаем API с информацией о домашних работах."""
-
     payload = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
@@ -66,11 +61,10 @@ def get_api_answer(timestamp):
             logging.error(f'Bad response: {response.status_code}')
             raise requests.exceptions.HTTPError
     except requests.exceptions.HTTPError:
-        raise MyException('Это мое собственное исключение!')
+        raise MyException('Ошибка запроса')
     except requests.RequestException:
         logging.error('Ошибка запроса')
-
-
+    print(response.json())
     return response.json()
 
 
@@ -82,29 +76,42 @@ def check_response(response):
     if not isinstance(response['current_date'], int):
         logging.error('current_date is not an integer')
         raise TypeError('current_date is not a dictionary')
-    try:
-        if not isinstance(response['homeworks'], list):
-            logging.error('homeworks is not a list')
-            raise TypeError('homeworks is not a dictionary')
-    except KeyError:
-        logging.error('homeworks not in a response')
-        raise KeyError('homeworks not in a response')
+    if 'homeworks' not in response:
+        logging.error('homeworks is not in a response')
+        raise IndexError('homeworks is not in a response')
+    if not isinstance(response['homeworks'], list):
+        logging.error('homeworks is not a list')
+        raise TypeError('homeworks is not a list')
     print(response)
+    if response['homeworks']:
+        logging.info('homeworks key value found')
+        return response['homeworks'][0]
+    else:
+        logging.error('homeworks key value NOT FOUND')
+        raise IndexError('homeworks key value NOT FOUND')
 
 
 def parse_status(homework):
     """Обрабатываем API и создаем ответ о статусе."""
-    homework_name = homework['homeworks'][0]['homework_name']
-    status = homework['homeworks'][0]['status']
-    verdict = HOMEWORK_VERDICTS.get(status)
-    print(homework_name, status, verdict)
-    if homework_name and verdict:
-        if status in HOMEWORK_VERDICTS:
-            logging.info('Статус работы изменен.')
-            return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-        else:
-            logging.error(f'Неизвестный статус домашней работы: {verdict}')
-            raise ValueError(f'Неизвестный статус домашней работы: {verdict}')
+    print(homework)
+    if 'homework_name' in homework:
+        logging.info('Значение ключа homework_name найдено')
+    else:
+        logging.error('Значение ключа homework_name не найдено')
+        raise IndexError('Значение ключа homework_name не найдено')
+    homework_name = homework['homework_name']
+    print(homework_name)
+    status = homework['status']
+    if status in HOMEWORK_VERDICTS:
+        logging.info('Значение статуса соответствует HOMEWORK_VERDICTS')
+        verdict = HOMEWORK_VERDICTS.get(status)
+        print(verdict)
+        logging.info('Статус работы изменился')
+        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+    else:
+        logging.error(f'Неизвестный статус домашней работы: {verdict}')
+        raise ValueError(f'Неизвестный статус домашней работы: {verdict}')
+
 
 def main():
     """Основная логика работы бота."""
@@ -115,13 +122,15 @@ def main():
     while True:
         try:
             response_json = get_api_answer(timestamp)
-            check_response(response_json)
-            message = parse_status(response_json)
+            homeworks = check_response(response_json)
+            message = parse_status(homeworks)
             send_message(bot, message)
             timestamp = response_json['current_date']
         except Exception as error:
+            logging.error(f'Ошибка в работе программы: {error}')
             print(f'Сбой в работе программы: {error}')
         time.sleep(RETRY_PERIOD)
+
 
 if __name__ == '__main__':
     main()
