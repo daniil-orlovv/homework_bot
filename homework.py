@@ -1,14 +1,15 @@
-import os
-import requests
-import time
 import logging
+import os
 import sys
-from exeptions import MyException
+import time
 
-
+import requests
 import telegram
-
 from dotenv import load_dotenv
+
+from exeptions import MyException
+from config import PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
+from config import RETRY_PERIOD, ENDPOINT, HEADERS
 
 load_dotenv()
 
@@ -20,14 +21,6 @@ logging.basicConfig(
     encoding='UTF-8'
 )
 
-PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
-RETRY_PERIOD = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
-HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
 
 HOMEWORK_VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -38,7 +31,7 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Проверяем наличие переменных."""
-    if not PRACTICUM_TOKEN or not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+    if not all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
         logging.critical('Отсутствуют обязательные переменные.')
         sys.exit(1)
 

@@ -1,5 +1,3 @@
-
-
 class MyException(Exception):
     """Класс для своих исключений."""
 
