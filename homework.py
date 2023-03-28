@@ -113,9 +113,15 @@ def main():
             timestamp = response_json['current_date']
         except Exception as error:
             logging.error(f'Ошибка в работе программы: {error}')
-            print(f'Сбой в работе программы: {error}')
-        time.sleep(RETRY_PERIOD)
+            error_message = f'Ошибка в работе программы: {error}'
+            send_message(error_message)
+        finally:
+            time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logging.info('Программа остановлена пользователем вручную')
+        sys.exit(0)
