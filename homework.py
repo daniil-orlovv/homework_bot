@@ -28,16 +28,11 @@ HOMEWORK_VERDICTS = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
-tokens = (
-    PRACTICUM_TOKEN,
-    TELEGRAM_TOKEN,
-    TELEGRAM_CHAT_ID
-)
 
 
 def check_tokens():
     """Проверяем наличие переменных."""
-    if not all(tokens):
+    if not all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
         logging.critical('Отсутствуют обязательные переменные.')
         sys.exit(1)
 
