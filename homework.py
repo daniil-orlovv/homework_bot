@@ -6,13 +6,10 @@ from http import HTTPStatus
 
 import requests
 import telegram
-from dotenv import load_dotenv
 
 from exeptions import MyRequestsException, MyBotHTTPError
 from config import PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
 from config import RETRY_PERIOD, ENDPOINT, HEADERS
-
-load_dotenv()
 
 logging.basicConfig(
     level=logging.DEBUG,
