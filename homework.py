@@ -56,6 +56,7 @@ def get_api_answer(timestamp):
         raise MyRequestsException(f'Bad response: {response.status_code}')
     except requests.RequestException:
         raise MyRequestsException('Ошибка связанная с запросом')
+    print(response.json())
     return response.json()
 
 
@@ -106,10 +107,14 @@ def main():
         try:
             response_json = get_api_answer(timestamp)
             check_response(response_json)
+            print(response_json['homeworks'])
             if response_json['homeworks']:
+                print(response_json['homeworks'][0])
                 message = parse_status(response_json['homeworks'][0])
-            send_message(bot, message)
-            timestamp = response_json['current_date']
+                send_message(bot, message)
+                timestamp = response_json['current_date']
+            else:
+                logging.info('Обновлений статуса не найдено')
         except Exception as error:
             logging.error(f'Ошибка в работе программы: {error}')
             error_message = f'Ошибка в работе программы: {error}'
