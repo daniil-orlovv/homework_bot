@@ -64,22 +64,18 @@ def check_response(response):
     if not isinstance(response, dict):
         logging.error('API response is not a dictionary')
         raise TypeError('API response is not a dictionary')
+    if 'current_date' not in response:
+        logging.error('current_date is not in a response')
+        raise KeyError('current_date is not in a response')
     if not isinstance(response['current_date'], int):
         logging.error('current_date is not an integer')
         raise TypeError('current_date is not a dictionary')
     if 'homeworks' not in response:
         logging.error('homeworks is not in a response')
-        raise IndexError('homeworks is not in a response')
+        raise KeyError('homeworks is not in a response')
     if not isinstance(response['homeworks'], list):
         logging.error('homeworks is not a list')
         raise TypeError('homeworks is not a list')
-    print(response)
-    if response['homeworks']:
-        logging.info('homeworks key value found')
-        return response['homeworks'][0]
-    else:
-        logging.error('homeworks key value NOT FOUND')
-        raise IndexError('homeworks key value NOT FOUND')
 
 
 def parse_status(homework):
@@ -113,8 +109,8 @@ def main():
     while True:
         try:
             response_json = get_api_answer(timestamp)
-            homeworks = check_response(response_json)
-            message = parse_status(homeworks)
+            check_response(response_json)
+            message = parse_status(response_json)
             send_message(bot, message)
             timestamp = response_json['current_date']
         except Exception as error:
