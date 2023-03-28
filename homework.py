@@ -81,23 +81,21 @@ def check_response(response):
 def parse_status(homework):
     """Обрабатываем API и создаем ответ о статусе."""
     print(homework)
-    if 'homework_name' in homework:
-        logging.info('Значение ключа homework_name найдено')
-    else:
+    if 'homework_name' not in homework:
         logging.error('Значение ключа homework_name не найдено')
-        raise IndexError('Значение ключа homework_name не найдено')
+        raise KeyError('Значение ключа homework_name не найдено')
     homework_name = homework['homework_name']
-    print(homework_name)
+    if 'status' not in homework:
+        logging.error('Ключ status не найден')
+        raise KeyError('Ключ status не найден')
     status = homework['status']
-    if status in HOMEWORK_VERDICTS:
-        logging.info('Значение статуса соответствует HOMEWORK_VERDICTS')
-        verdict = HOMEWORK_VERDICTS.get(status)
-        print(verdict)
-        logging.info('Статус работы изменился')
-        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-    else:
+    if status not in HOMEWORK_VERDICTS:
         logging.error(f'Неизвестный статус домашней работы: {verdict}')
         raise ValueError(f'Неизвестный статус домашней работы: {verdict}')
+    verdict = HOMEWORK_VERDICTS.get(status)
+    logging.info('Статус работы изменился')
+    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+
 
 
 def main():
