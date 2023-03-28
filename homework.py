@@ -32,6 +32,7 @@ def check_tokens():
     if not all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
         logging.critical('Отсутствуют обязательные переменные.')
         sys.exit(1)
+    logging.info('Программа запущена')
 
 
 def send_message(bot, message):
@@ -80,7 +81,6 @@ def check_response(response):
 
 def parse_status(homework):
     """Обрабатываем API и создаем ответ о статусе."""
-    print(homework)
     if 'homework_name' not in homework:
         logging.error('Значение ключа homework_name не найдено')
         raise KeyError('Значение ключа homework_name не найдено')
