@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 import time
 from http import HTTPStatus
@@ -7,7 +6,7 @@ from http import HTTPStatus
 import requests
 import telegram
 
-from exeptions import MyRequestsException, MyBotHTTPError
+from exeptions import MyRequestsException, MyBotHTTPError, MyExceptions
 from config import PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
 from config import RETRY_PERIOD, ENDPOINT, HEADERS
 
@@ -42,7 +41,7 @@ def send_message(bot, message):
         logging.debug('Сообщение о статусе отправлено.')
     except telegram.error.TelegramError as e:
         logging.error(f'Не удалось отправить сообщение: {str(e)}')
-        raise MyRequestsException('Ошибка отправки сообщения в Telegram') from e
+        raise MyExceptions('Ошибка отправки сообщения в Telegram') from e
 
 
 def get_api_answer(timestamp):
@@ -56,7 +55,7 @@ def get_api_answer(timestamp):
     except requests.exceptions.HTTPError:
         raise MyRequestsException(f'Bad response: {response.status_code}')
     except requests.RequestException:
-        logging.error('Ошибка связанная с запросом')
+        raise MyRequestsException('Ошибка связанная с запросом')
     return response.json()
 
 
@@ -90,12 +89,11 @@ def parse_status(homework):
         raise KeyError('Ключ status не найден')
     status = homework['status']
     if status not in HOMEWORK_VERDICTS:
-        logging.error(f'Неизвестный статус домашней работы: {verdict}')
-        raise ValueError(f'Неизвестный статус домашней работы: {verdict}')
+        logging.error(f'Неизвестный статус домашней работы: {status}')
+        raise ValueError(f'Неизвестный статус домашней работы: {status}')
     verdict = HOMEWORK_VERDICTS.get(status)
-    logging.info('Статус работы изменился')
+    logging.info('Статус работы обновлен')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-
 
 
 def main():
@@ -108,13 +106,14 @@ def main():
         try:
             response_json = get_api_answer(timestamp)
             check_response(response_json)
-            message = parse_status(response_json)
+            if response_json['homeworks']:
+                message = parse_status(response_json['homeworks'][0])
             send_message(bot, message)
             timestamp = response_json['current_date']
         except Exception as error:
             logging.error(f'Ошибка в работе программы: {error}')
             error_message = f'Ошибка в работе программы: {error}'
-            send_message(error_message)
+            send_message(bot, error_message)
         finally:
             time.sleep(RETRY_PERIOD)
 
