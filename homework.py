@@ -2,12 +2,13 @@ import logging
 import os
 import sys
 import time
+from http import HTTPStatus
 
 import requests
 import telegram
 from dotenv import load_dotenv
 
-from exeptions import MyException
+from exeptions import MyRequestsException, MyBotHTTPError
 from config import PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
 from config import RETRY_PERIOD, ENDPOINT, HEADERS
 
@@ -27,11 +28,16 @@ HOMEWORK_VERDICTS = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
+tokens = (
+    PRACTICUM_TOKEN,
+    TELEGRAM_TOKEN,
+    TELEGRAM_CHAT_ID
+)
 
 
 def check_tokens():
     """Проверяем наличие переменных."""
-    if not all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
+    if not all(tokens):
         logging.critical('Отсутствуют обязательные переменные.')
         sys.exit(1)
 
@@ -41,8 +47,9 @@ def send_message(bot, message):
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logging.debug('Сообщение о статусе отправлено.')
-    except Exception as e:
+    except telegram.error.TelegramError as e:
         logging.error(f'Не удалось отправить сообщение: {str(e)}')
+        raise MyRequestsException('Ошибка отправки сообщения в Telegram') from e
 
 
 def get_api_answer(timestamp):
@@ -50,14 +57,13 @@ def get_api_answer(timestamp):
     payload = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
-        if response.status_code != 200:
+        if response.status_code != HTTPStatus.OK:
             logging.error(f'Bad response: {response.status_code}')
-            raise requests.exceptions.HTTPError
+            raise MyBotHTTPError("Bad response:", response.status_code)
     except requests.exceptions.HTTPError:
-        raise MyException('Ошибка запроса')
+        raise MyRequestsException(f'Bad response: {response.status_code}')
     except requests.RequestException:
-        logging.error('Ошибка запроса')
-    print(response.json())
+        logging.error('Ошибка связанная с запросом')
     return response.json()
 
 
