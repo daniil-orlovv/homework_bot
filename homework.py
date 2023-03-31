@@ -6,9 +6,9 @@ from http import HTTPStatus
 import requests
 import telegram
 
-from exeptions import MyRequestsException, MyBotHTTPError, MyExceptions
-from config import PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
-from config import RETRY_PERIOD, ENDPOINT, HEADERS
+from exceptions import MyRequestsException, MyBotHTTPError, MyExceptions
+from config import PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, RETRY_PERIOD, ENDPOINT, HEADERS
+from config import
 
 logging.basicConfig(
     level=logging.DEBUG,
