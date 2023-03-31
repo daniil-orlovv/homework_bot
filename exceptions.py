@@ -19,7 +19,7 @@ class OtherHTTPError(Exception):
 
 
 class MessageError(Exception):
-    """Класс для своих исключений."""
+    """Класс для исключений, возникающих при ошибке отправке сообщения."""
 
     def __init__(self, message):
         self.message = message
