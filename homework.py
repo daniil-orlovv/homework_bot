@@ -43,7 +43,7 @@ def get_api_answer(timestamp):
         response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
         if response.status_code != HTTPStatus.OK:
             logging.error(f'Bad response: {response.status_code}')
-            raise HTTPError("Bad response:", response.status_code)
+            raise HTTPError('Bad response:', response.status_code)
     except requests.exceptions.HTTPError:
         raise OtherHTTPError(f'Bad response: {response.status_code}')
     except requests.RequestException:
