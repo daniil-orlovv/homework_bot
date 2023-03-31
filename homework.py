@@ -9,7 +9,7 @@ import telegram
 from exceptions import OtherHTTPError, HTTPError, MessageError
 
 from config import (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,
-                    RETRY_PERIOD, ENDPOINT, HEADERS)
+                    RETRY_PERIOD, ENDPOINT, HEADERS, HOMEWORK_VERDICTS)
 logging.basicConfig(
     level=logging.DEBUG,
     filename='main.log',
@@ -17,13 +17,6 @@ logging.basicConfig(
     format='%(asctime)s, %(levelname)s, %(message)s, %(name)s',
     encoding='UTF-8'
 )
-
-
-HOMEWORK_VERDICTS = {
-    'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
-    'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
-}
 
 
 def check_tokens():
