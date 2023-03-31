@@ -28,12 +28,28 @@ def check_tokens():
 
 def send_message(bot, message):
     """Отправляем сообщение о статусе в телеграм."""
-    try:
-        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-        logging.debug('Сообщение о статусе отправлено.')
-    except telegram.error.TelegramError as e:
-        logging.error(f'Не удалось отправить сообщение: {str(e)}')
-        raise MessageError('Ошибка отправки сообщения в Telegram') from e
+    global last_error_message
+
+    if 'Ошибка в работе программы' in message:
+        if message != last_error_message:
+            try:
+                bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+                logging.debug('Сообщение об ошибке отправлено.')
+            except telegram.error.TelegramError as e:
+                logging.error(
+                    f'Не удалось отправить сообщение об ошибке: {str(e)}'
+                )
+                raise MessageError('Ошибка отправки сообщения') from e
+            last_error_message = message
+    else:
+        try:
+            bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+            logging.debug('Сообщение о статусе отправлено.')
+        except telegram.error.TelegramError as e:
+            logging.error(
+                f'Не удалось отправить сообщение о статусе: {str(e)}'
+            )
+            raise MessageError('Ошибка отправки сообщения в Telegram') from e
 
 
 def get_api_answer(timestamp):
@@ -118,4 +134,3 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         logging.info('Программа остановлена пользователем вручную')
-        sys.exit(0)
