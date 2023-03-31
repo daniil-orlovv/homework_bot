@@ -1,12 +1,4 @@
-class MyRequestsException(Exception):
-    """Класс для своих исключений requests."""
-
-    def __init__(self, message):
-        self.message = message
-        super().__init__(self.message)
-
-
-class MyBotHTTPError(Exception):
+class HTTPError(Exception):
     """Исключение, которое возникает при ошибках HTTP."""
 
     def __init__(self, message, status_code):
@@ -18,7 +10,15 @@ class MyBotHTTPError(Exception):
         return f"{self.status_code}: {self.message}"
 
 
-class MyExceptions(Exception):
+class OtherHTTPError(Exception):
+    """Класс для остальных исключений при ошибках HTTP."""
+
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+
+class MessageError(Exception):
     """Класс для своих исключений."""
 
     def __init__(self, message):

@@ -6,7 +6,7 @@ from http import HTTPStatus
 import requests
 import telegram
 
-from exceptions import MyRequestsException, MyBotHTTPError, MyExceptions
+from exceptions import OtherHTTPError, HTTPError, MessageError
 
 from config import (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,
                     RETRY_PERIOD, ENDPOINT, HEADERS)
@@ -41,7 +41,7 @@ def send_message(bot, message):
         logging.debug('Сообщение о статусе отправлено.')
     except telegram.error.TelegramError as e:
         logging.error(f'Не удалось отправить сообщение: {str(e)}')
-        raise MyExceptions('Ошибка отправки сообщения в Telegram') from e
+        raise MessageError('Ошибка отправки сообщения в Telegram') from e
 
 
 def get_api_answer(timestamp):
@@ -51,11 +51,11 @@ def get_api_answer(timestamp):
         response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
         if response.status_code != HTTPStatus.OK:
             logging.error(f'Bad response: {response.status_code}')
-            raise MyBotHTTPError("Bad response:", response.status_code)
+            raise HTTPError("Bad response:", response.status_code)
     except requests.exceptions.HTTPError:
-        raise MyRequestsException(f'Bad response: {response.status_code}')
+        raise OtherHTTPError(f'Bad response: {response.status_code}')
     except requests.RequestException:
-        raise MyRequestsException('Ошибка связанная с запросом')
+        raise OtherHTTPError('Ошибка связанная с запросом')
     return response.json()
 
 
