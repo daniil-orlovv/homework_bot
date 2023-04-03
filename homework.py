@@ -7,9 +7,17 @@ import requests
 import telegram
 
 from exceptions import OtherHTTPError, HTTPError, MessageError
+from config import (
+    PRACTICUM_TOKEN,
+    TELEGRAM_TOKEN,
+    TELEGRAM_CHAT_ID,
+    RETRY_PERIOD,
+    ENDPOINT,
+    HEADERS,
+    HOMEWORK_VERDICTS
+)
 
-from config import (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,
-                    RETRY_PERIOD, ENDPOINT, HEADERS, HOMEWORK_VERDICTS)
+
 logging.basicConfig(
     level=logging.DEBUG,
     filename='main.log',
@@ -28,28 +36,14 @@ def check_tokens():
 
 def send_message(bot, message):
     """Отправляем сообщение о статусе в телеграм."""
-    global last_error_message
-
-    if 'Ошибка в работе программы' in message:
-        if message != last_error_message:
-            try:
-                bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-                logging.debug('Сообщение об ошибке отправлено.')
-            except telegram.error.TelegramError as e:
-                logging.error(
-                    f'Не удалось отправить сообщение об ошибке: {str(e)}'
-                )
-                raise MessageError('Ошибка отправки сообщения') from e
-            last_error_message = message
-    else:
-        try:
-            bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-            logging.debug('Сообщение о статусе отправлено.')
-        except telegram.error.TelegramError as e:
-            logging.error(
-                f'Не удалось отправить сообщение о статусе: {str(e)}'
-            )
-            raise MessageError('Ошибка отправки сообщения в Telegram') from e
+    try:
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+        logging.debug('Сообщение отправлено.')
+    except telegram.error.TelegramError as e:
+        logging.error(
+            f'Не удалось отправить сообщение: {str(e)}'
+        )
+        raise MessageError('Ошибка отправки сообщения в Telegram') from e
 
 
 def get_api_answer(timestamp):
@@ -110,7 +104,7 @@ def main():
     check_tokens()
     timestamp = int(time.time()) - RETRY_PERIOD
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-
+    last_error_message = ''
     while True:
         try:
             response_json = get_api_answer(timestamp)
@@ -124,7 +118,9 @@ def main():
         except Exception as error:
             logging.error(f'Ошибка в работе программы: {error}')
             error_message = f'Ошибка в работе программы: {error}'
-            send_message(bot, error_message)
+            if error_message != last_error_message:
+                send_message(bot, error_message)
+            last_error_message = error_message
         finally:
             time.sleep(RETRY_PERIOD)
 
